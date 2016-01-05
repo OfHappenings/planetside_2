@@ -4,14 +4,14 @@ import argparse
 
 import requests
 
-
-from elasticsearch import Elasticsearch
+from influxdb import InfluxDBClient
 
 class Stats():
-    def __init__(self):
+    def __init__(self, ip, port):
         #self.outfit_id = '37509507321455149'
         self.api_url   = 'http://census.daybreakgames.com/get/ps2:v2/outfit_member/?outfit_id=%s&c:limit=999999&c:resolve=online_status'
-        self.es        = Elasticsearch()
+
+        self.client = InfluxDBClient(ip, port, 'root', 'root', 'planetside_2')
 
 
     def get_online_members(self, outfit_id):
@@ -35,18 +35,38 @@ class Stats():
         print('total: %s -- online: %s' % (total_members, online_members))
             #print(member)
         
-        body = {'online_members':online_members,'total_members':total_members,'outfit_id':outfit_id,'timestamp':now}
-        result = self.es.index(index='planetside_2', doc_type='online_members', body=body)
+        #body = {'online_members':online_members,'total_members':total_members,'outfit_id':outfit_id,'timestamp':now}
+        body = [
+                {
+                    'measurement':'online_members',
+                    'tags':
+                    {
+                        'outfit_id':outfit_id,
+                    },
+                    'time':now,
+                    'fields':
+                    {
+                        'total_members':total_members,
+                        'online_members':online_members,
+                    }
+                }
+               ]
+
+        #result = self.es.index(index='planetside_2', doc_type='online_members', body=body)
+        self.client.write_points(body)
 
 
 if __name__ == '__main__':
-    stats = Stats()
     
     parser = argparse.ArgumentParser(description='send Planetside 2 stats to elasticsearch')
     parser.add_argument('--online-members', action='store')
+    parser.add_argument('--db-ip',          action='store', default='localhost')
+    parser.add_argument('--db-port',        action='store', default=8086, type=int)
 
-
+    
     args = parser.parse_args()
+    stats = Stats(args.db_ip, args.db_port)
+
 
     if args.online_members:
         stats.get_online_members(args.online_members)
