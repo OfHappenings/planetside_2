@@ -16,6 +16,8 @@ class Stats():
 
     def get_online_members(self, outfit_id):
         online_members = 0
+        total_members  = 0
+
         # Returns local time zone
         now            = datetime.datetime.utcnow()
 
@@ -29,13 +31,11 @@ class Stats():
         total_members = data['returned']
 
         for member in member_list:
-            if member['online_status'] != "0":
+            if member['online_status'] == "17":
                 online_members += 1
 
         print('total: %s -- online: %s' % (total_members, online_members))
-            #print(member)
         
-        #body = {'online_members':online_members,'total_members':total_members,'outfit_id':outfit_id,'timestamp':now}
         body = [
                 {
                     'measurement':'online_members',
@@ -52,7 +52,6 @@ class Stats():
                 }
                ]
 
-        #result = self.es.index(index='planetside_2', doc_type='online_members', body=body)
         self.client.write_points(body)
 
 
